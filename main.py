@@ -109,8 +109,7 @@ def train():
             kl_divergent = -torch.sum(1+torch.log(sigma.pow(2)) - mu.pow(2)-sigma.pow(2))
             
             #calcolo loss 2.0
-            reconstruction_loss = loss_fn(outputs, targets) + kl_divergent
-            
+            reconstruction_loss = loss_fn(outputs, targets) 
            
             ###########################################################################
 
@@ -127,11 +126,12 @@ def train():
 
             step+=1
 
-            
+           
             if(step%250 == 0 and step!=0):
-                print(f"Step{step}/Epoch{epoch}], Loss: {step_loss/50:.4f}")
+                print(f"Step{step}/Epoch{epoch}], Loss: {step_loss/250:.4f}")
                 step_loss = 0
                 eval1(model, device, dataset, "prova.jpg")
+                
                 eval1(model, device, dataset, "prova2.jpg")
             
                 

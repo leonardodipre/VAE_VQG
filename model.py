@@ -24,7 +24,7 @@ class CNNencoder(nn.Module):
         #in basic VAE , applico per l'estrazioni delle feature una relu, e poi passo featur 
         features = self.resNet(self.preprocess(images))
 
-        mu, sigma = self.hid_2mu(features), self.hid_2sigma(features)
+        mu, sigma = features, features
 
         return features, mu , sigma
 
@@ -73,7 +73,7 @@ class CNNtoRNN(nn.Module):
         
         #z_reparametrize sarebbe il mio immage feature vector 
         #DECODER function
-        outputs = self.decoderRNN(z_reparametrized, caption, lenght)
+        outputs = self.decoderRNN(features, caption, lenght)
         return  outputs , mu, sigma
 
     def caption_image(self, image, vocabulary, max_length=50):
@@ -85,23 +85,29 @@ class CNNtoRNN(nn.Module):
             x , mu , sigma = self.encoderCNN(image)
 
             x = x.unsqueeze(0)
+            """
             mu = mu.unsqueeze(0)    
             sigma = sigma.unsqueeze(0)
             epsilon = torch.rand_like(sigma)
-
+            
+            
             z_reparametrized = mu + sigma*epsilon
             states = z_reparametrized
-            
+            """
+            states = x
+           
 
             start_tok = self.decoderRNN.embed(torch.tensor([vocabulary.stoi["<SOS>"]]).cuda()).unsqueeze(0)
 
             for _ in range(max_length):
 
-                hiddens, states = self.decoderRNN.lstm(start_tok, states)   
-                hiddens = torch.cat((hiddens, z_reparametrized), dim=2)
-
+                hiddens, states = self.decoderRNN.lstm(start_tok, states)  
+              
+                hiddens = torch.cat((hiddens, x), dim=2)
+                
                 output = self.decoderRNN.linear(hiddens.squeeze(0))
                 predicted = output.argmax(1)
+               
                 start_tok = self.decoderRNN.embed(predicted).unsqueeze(0)
 
                 if vocabulary.itos[predicted.item()] == "<EOS>":
