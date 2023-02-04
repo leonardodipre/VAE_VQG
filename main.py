@@ -10,8 +10,48 @@ from tqdm import tqdm
 from torch.nn.utils.rnn import pack_padded_sequence
 import json
 from eval import eval1
-
+import numpy as np
 torch.manual_seed(258713695246)
+
+
+def dropout_and_replace(tensor_batch, dropout_rate, replace_token, exclude_list):
+   
+    result_batch = []
+    for tensor in tensor_batch:
+        mask = np.random.binomial(1, 1 - dropout_rate, tensor.shape).astype(bool)
+        tensor = np.where(np.logical_or(mask, np.isin(tensor, exclude_list)), tensor, replace_token)
+        result_batch.append(tensor)
+
+    return  torch.tensor(result_batch)
+"""
+
+def dropout_and_replace(tensor_batch, dropout_rate, replace_token, exclude_list):
+    result_batch = []
+    exclude_list = torch.tensor(exclude_list, dtype=torch.long, device=tensor_batch[0].device)
+    for tensor in tensor_batch:
+        mask = (torch.rand(tensor.shape, device=tensor.device) > dropout_rate).bool()
+        tensor = torch.where(mask | tensor.unsqueeze(-1).eq(exclude_list).any(-1), tensor, replace_token)
+        result_batch.append(tensor)
+    combined = torch.cat(result_batch)
+    return combined
+"""
+
+def frange_cycle_linear(start, stop, n_epoch, n_cycle=4, ratio=0.2):
+
+    L = np.ones(n_epoch)
+    period = n_epoch/n_cycle
+    step = (stop-start)/(period*ratio) # linear schedule
+
+    for c in range(n_cycle):
+
+        v , i = start , 0
+        while v <= stop and (int(i+c*period) < n_epoch):
+            L[int(i+c*period)] = v
+           
+            v += step
+            i += 1
+    return L  
+
 
 
 
@@ -54,7 +94,7 @@ def train():
     vocab_size = len(dataset.vocab)
     num_layers = 1
     learning_rate = 1e-4
-    num_epochs = 1
+    num_epochs = 20
     train_CNN = False
     ###########################################################################
 
@@ -80,7 +120,8 @@ def train():
             param.requires_grad = train_CNN
 
    
-
+   #calulate the list for B value for KL vanquisch
+    beta_np_inc = frange_cycle_linear(0.0, 1.0, num_epochs, 1, 0.25)
 
 
     for epoch in range(num_epochs):
@@ -98,7 +139,16 @@ def train():
             model.train()
 
             imgs = imgs.to(device)
-            questions = questions.to(device)            
+                       
+
+            #drop some question add <unk> tokken
+            exclude_list = [0, 1, 2, 3, 4]
+            
+
+          
+            questions = dropout_and_replace(questions, 0.5, 3, exclude_list)
+            questions = questions.to(device)
+            
 
             outputs, mu, sigma = model(imgs,questions,lengths)
 
@@ -109,12 +159,12 @@ def train():
             kl_divergent = -torch.sum(1+torch.log(sigma.pow(2)) - mu.pow(2)-sigma.pow(2))
             
             #calcolo loss 2.0
-            reconstruction_loss = loss_fn(outputs, targets) 
+            reconstruction_loss = loss_fn(outputs, targets) +  beta_np_inc[epoch]* kl_divergent
            
+
             ###########################################################################
 
-            
-           
+                     
             epoch_loss += reconstruction_loss.item()
             step_loss += reconstruction_loss.item()
 

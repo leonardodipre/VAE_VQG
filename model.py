@@ -44,7 +44,7 @@ class RNNdecoder(nn.Module):
 
     def forward(self, features, questions, lengths):
 
-        embeddings = self.dropout(self.embed(questions))
+        embeddings = self.embed(questions)
         
         packed = pack_padded_sequence(embeddings, [l-1 for l in lengths], batch_first=True)
         hiddens, _ = self.lstm(packed,features.squeeze().unsqueeze(0))
