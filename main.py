@@ -75,7 +75,7 @@ def train():
     
     
     csv = r'train_coco.csv'
-    imm_dir =r'C:\Users\leona\Desktop\COCO-dataset\coco-2014\train2014\train2014'
+    imm_dir =r'D:\Leonardo\Datasets\Coco\train2014\train2014'
 
 
     freq_threshold = 4 # 4019 vocab
@@ -177,8 +177,8 @@ def train():
             step+=1
 
            
-            if(step%250 == 0 and step!=0):
-                print(f"Step{step}/Epoch{epoch}], Loss: {step_loss/250:.4f}")
+            if(step%100 == 0 and step!=0):
+                print(f"Step{step}/Epoch{epoch}], Loss: {step_loss/10:.4f}")
                 step_loss = 0
                 eval1(model, device, dataset, "prova.jpg")
                 

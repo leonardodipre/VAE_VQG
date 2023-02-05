@@ -155,8 +155,8 @@ def get_loader(
     imm_dir , 
     freq_threshold , 
     transform,
-    batch_size=4,
-    num_workers=1,
+    batch_size=64,
+    num_workers=4,
     shuffle=True,
     drop_last=True,
 ):
